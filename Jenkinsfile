@@ -183,7 +183,8 @@ spec:
                             envGitInfo = git 'https://github.com/joostvdg/cb-team-gitops.git'
                         }
                         sh 'git checkout -b ${PR_CHANGE_NAME}'
-                        sh 'copy -R ../${RECORD_LOC} ./teams'
+                        sh 'ls -lath ../${RECORD_LOC}'
+                        sh 'cp -R ../${RECORD_LOC} ./teams'
                         sh 'ls -lath'
                         sh 'ls -lath teams/'
 
