@@ -173,7 +173,8 @@ spec:
         stage('Create PR') {
             when { branch 'master'}
             environment {
-                RECORD_LOC      = "templates/teams/${TEAM_BASE_NAME}"
+                RECORD_OLD_LOC  = "templates/teams/${TEAM_BASE_NAME}"
+                RECORD_LOC      = "teams/${TEAM_BASE_NAME}"
                 PR_CHANGE_NAME  = "add_team_${TEAM_BASE_NAME}"
             }
             steps {
@@ -183,8 +184,8 @@ spec:
                             envGitInfo = git 'https://github.com/joostvdg/cb-team-gitops.git'
                         }
                         sh 'git checkout -b ${PR_CHANGE_NAME}'
-                        sh 'ls -lath ../${RECORD_LOC}'
-                        sh 'cp -R ../${RECORD_LOC} ./teams'
+                        sh 'ls -lath ../${RECORD_OLD_LOC}'
+                        sh 'cp -R ../${RECORD_OLD_LOC} ./teams'
                         sh 'ls -lath'
                         sh 'ls -lath teams/'
 
