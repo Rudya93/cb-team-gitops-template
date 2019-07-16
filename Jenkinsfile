@@ -124,7 +124,7 @@ spec:
         }
         stage('Create Team Config') {
             environment {
-                BASE        = 'resources/namespace-creation/kustomize'
+                BASE        = 'namespace-creation/kustomize'
                 NAMESPACE   = "${NAMESPACE_TO_CREATE}"
                 RECORD_LOC  = "teams/${TEAM_BASE_NAME}"
             }
@@ -156,7 +156,7 @@ spec:
                             .data.members[0].id = "${ADMINS_ROLE}" |\
                             .data.members[1].id = "${MEMBERS_ROLE}" |\
                             .data.members[2].id = "${GUESTS_ROLE}"'\
-                            resources/team-master-template/simple.json > ${RECORD_LOC}/team.json
+                            team-master-template/simple.json > ${RECORD_LOC}/team.json
                             """
                         }
                         sh 'cat ${RECORD_LOC}/team.json'
