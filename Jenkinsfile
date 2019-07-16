@@ -183,7 +183,6 @@ spec:
                             envGitInfo = git 'https://github.com/joostvdg/cb-team-gitops.git'
                         }
                         sh 'git checkout -b ${PR_CHANGE_NAME}'
-
                         sh 'copy -R ../${RECORD_LOC} ./teams'
                         sh 'ls -lath'
                         sh 'ls -lath teams/'
@@ -198,7 +197,7 @@ spec:
                         git push origin ${PR_CHANGE_NAME}
                         '''
 
-                        
+
                         // has to be indented like that, else the indents will be in the pr description
                         writeFile encoding: 'UTF-8', file: 'pr-info.md', text: """Add ${TEAM_BASE_NAME}
 \n
