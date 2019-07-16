@@ -66,6 +66,7 @@ spec:
     }
     options {
         disableConcurrentBuilds()
+        checkoutToSubdirectory 'templates' // we need to do two checkouts
         buildDiscarder logRotator(artifactDaysToKeepStr: '', artifactNumToKeepStr: '', daysToKeepStr: '5', numToKeepStr: '5')
     }
     environment {
@@ -117,16 +118,16 @@ spec:
                     ADMINS_ROLE         = "${Admins}"
                     MEMBERS_ROLE        = "${Members}"
                     GUESTS_ROLE         = "${Guests}"
-                    RECORD_LOC          = "teams/${Name}"
+                    RECORD_LOC          = "templates/teams/${Name}"
                     sh "mkdir -p ${RECORD_LOC}"
                 }
             }
         }
         stage('Create Team Config') {
             environment {
-                BASE        = 'namespace-creation/kustomize'
+                BASE        = 'templates/namespace-creation/kustomize'
                 NAMESPACE   = "${NAMESPACE_TO_CREATE}"
-                RECORD_LOC  = "teams/${TEAM_BASE_NAME}"
+                RECORD_LOC  = "templates/teams/${TEAM_BASE_NAME}"
             }
             parallel {
                 stage('Namespace') {
@@ -156,7 +157,7 @@ spec:
                             .data.members[0].id = "${ADMINS_ROLE}" |\
                             .data.members[1].id = "${MEMBERS_ROLE}" |\
                             .data.members[2].id = "${GUESTS_ROLE}"'\
-                            team-master-template/simple.json > ${RECORD_LOC}/team.json
+                            templates/team-master-template/simple.json > ${RECORD_LOC}/team.json
                             """
                         }
                         sh 'cat ${RECORD_LOC}/team.json'
@@ -164,58 +165,57 @@ spec:
                 }
             }
         }
-        stage('Stash') {
-            environment{
-                RECORD_LOC  = "teams/${TEAM_BASE_NAME}"
-            }
-            steps {
-                stash includes: '${RECORD_LOC}/team.*', name: 'new_team'
-            }
-        }
+        // stage('Stash') {
+        //     steps {
+        //         stash includes: "teams/${TEAM_BASE_NAME}/team.*", name: 'new_team'
+        //     }
+        // }
         stage('Create PR') {
             when { branch 'master'}
             environment {
-                RECORD_LOC      = "teams/${TEAM_BASE_NAME}"
+                RECORD_LOC      = "templates/teams/${TEAM_BASE_NAME}"
                 PR_CHANGE_NAME  = "add_team_${TEAM_BASE_NAME}"
             }
             steps {
                 container('hub') {
-                    script {
-                        envGitInfo = git 'https://github.com/joostvdg/cb-team-gitops.git'
-                    }
-                    sh 'git checkout -b ${PR_CHANGE_NAME}'
+                    dir('cb-team-gitops') {
+                        script {
+                            envGitInfo = git 'https://github.com/joostvdg/cb-team-gitops.git'
+                        }
+                        sh 'git checkout -b ${PR_CHANGE_NAME}'
 
-                    unstash 'new_team'
-                    sh 'ls -lath'
-                    sh 'ls -lath teams/'
-                    sh 'ls -lath ${RECORD_LOC}'
+                        sh 'copy -R ../${RECORD_LOC} ./teams'
+                        sh 'ls -lath'
+                        sh 'ls -lath teams/'
 
-                    gitRemoteConfigByUrl(envGitInfo.GIT_URL, 'githubtoken_token') // must be a API Token ONLY -> secret text
-                    sh '''
-                    git config --global user.email "jenkins@jenkins.io"
-                    git config --global user.name "Jenkins"
-                    git add ${RECORD_LOC}
-                    git status
-                    git commit -m "add team ${TEAM_BASE_NAME}"
-                    git push origin ${PR_CHANGE_NAME}
-                    '''
+                        gitRemoteConfigByUrl(envGitInfo.GIT_URL, 'githubtoken_token') // must be a API Token ONLY -> secret text
+                        sh '''
+                        git config --global user.email "jenkins@jenkins.io"
+                        git config --global user.name "Jenkins"
+                        git add ${RECORD_LOC}
+                        git status
+                        git commit -m "add team ${TEAM_BASE_NAME}"
+                        git push origin ${PR_CHANGE_NAME}
+                        '''
 
-                    // has to be indented like that, else the indents will be in the pr description
-                    writeFile encoding: 'UTF-8', file: 'pr-info.md', text: """Add ${TEAM_BASE_NAME}
+                        
+                        // has to be indented like that, else the indents will be in the pr description
+                        writeFile encoding: 'UTF-8', file: 'pr-info.md', text: """Add ${TEAM_BASE_NAME}
 \n
 This pr is automatically generated via CloudBees.\\n
 \n
 The job: ${env.JOB_URL}
                     """
 
-                    // TODO: unfortunately, environment {}'s credentials have fixed environment variable names
-                    // TODO: in this case, they need to be EXACTLY GITHUB_PASSWORD and GITHUB_USER
-                    script {
-                        withCredentials([usernamePassword(credentialsId: 'githubtoken', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USER')]) {
-                            sh """
-                            set +x
-                            hub pull-request --force -F pr-info.md -l '${TEAM_BASE_NAME}' --no-edit
-                            """
+                        // TODO: unfortunately, environment {}'s credentials have fixed environment variable names
+                        // TODO: in this case, they need to be EXACTLY GITHUB_PASSWORD and GITHUB_USER
+                        script {
+                            withCredentials([usernamePassword(credentialsId: 'githubtoken', passwordVariable: 'GITHUB_PASSWORD', usernameVariable: 'GITHUB_USER')]) {
+                                sh """
+                                set +x
+                                hub pull-request --force -F pr-info.md -l '${TEAM_BASE_NAME}' --no-edit
+                                """
+                            }
                         }
                     }
                 }
