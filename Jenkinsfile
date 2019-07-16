@@ -165,11 +165,8 @@ spec:
             }
         }
         stage('Stash') {
-            environment{
-                RECORD_LOC  = "teams/${TEAM_BASE_NAME}"
-            }
             steps {
-                stash includes: '${RECORD_LOC}/team.*', name: 'new_team'
+                stash includes: "teams/${TEAM_BASE_NAME}/team.*", name: 'new_team'
             }
         }
         stage('Create PR') {
